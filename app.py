@@ -88,13 +88,39 @@ df2_pilih = df2[df2['Provinsi'] == pilih_provinsi]
 normalisasi_df = (df_pilih.iloc[0, 1:] - df_pilih.iloc[0, 1:].min()) / (df_pilih.iloc[0, 1:].max() - df_pilih.iloc[0, 1:].min())
 normalisasi_df2 = (df2_pilih.iloc[0, 1:] - df2_pilih.iloc[0, 1:].min()) / (df2_pilih.iloc[0, 1:].max() - df2_pilih.iloc[0, 1:].min())
 
-fig_grafik, ax_grafik = plt.subplots(figsize=(5, 5))
-ax_grafik.plot(df_pilih.columns[1:], normalisasi_df, marker='o', label='PRDB')
-ax_grafik.plot(df2_pilih.columns[1:], normalisasi_df2, marker='o', color='orange', label='Luas Lahan')
-ax_grafik.set_title('Perbandingan PRDB terhadap Luas lahan sawit' + ' Provinsi ' + pilih_provinsi)
-ax_grafik.set_xlabel('Tahun')
-ax_grafik.set_ylabel('Normalisasi')
-ax_grafik.grid(True)
-ax_grafik.legend()
+merged_df = pd.DataFrame({
+   'tahun': kolom,
+   'pdrb' : normalisasi_df,
+   'area' : normalisasi_df2
+})
+   
+# st.dataframe(merged_df)
 
-st.pyplot(fig=fig_grafik)
+# fig_grafik, ax_grafik = plt.subplots(figsize=(5, 5))
+# ax_grafik.plot(df_pilih.columns[1:], normalisasi_df, marker='o', label='PRDB')
+# ax_grafik.plot(df2_pilih.columns[1:], normalisasi_df2, marker='o', color='orange', label='Luas Lahan')
+# ax_grafik.set_title('Perbandingan PRDB terhadap Luas lahan sawit' + ' Provinsi ' + pilih_provinsi)
+# ax_grafik.set_xlabel('Tahun')
+# ax_grafik.set_ylabel('Normalisasi')
+# ax_grafik.grid(True)
+# ax_grafik.legend()
+# st.pyplot(fig=fig_grafik)
+
+# hasil_grafik = alt.Chart(merged_df).mark_line().encode(
+#     x='tahun',
+#     y="area",
+#     # color="symbol",
+# )
+
+df_melted = merged_df.melt(id_vars='tahun', var_name='Line', value_name='Normalisasi')
+hasil_grafik = alt.Chart(df_melted).mark_line().encode(
+    x='tahun:O',
+    y='Normalisasi:Q',
+    color='Line:N'
+).properties(
+    width=500,
+    height=300,
+    title='Perbandingan PDRB terhadap luas lahan sawit Provinsi ' + pilih_provinsi
+)
+
+st.altair_chart(hasil_grafik,use_container_width=True)
