@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import altair as alt
+import matplotlib.pyplot as plt
 
 st.title("Hubungan Luas Lahan Kelapa Sawit dan Nilai Produk Domestik Regional Bruto")
 st.write("""
@@ -42,29 +43,58 @@ df['rata2'] = df[kolom].mean(axis=1)
 top_10_pdrb = df.nlargest(10, 'rata2')
 
 # Bar Chart disini top 10 terluas
-st.bar_chart(
-    x = top_10_luas['Provinsi'][1],
-    y = top_10_luas['rata2'])
+# st.dataframe(top_10_luas)
+# st.dataframe(top_10_luas['Provinsi'])
 
+top_10_luas_bar = alt.Chart(top_10_luas).mark_bar().encode(
+    alt.X('Provinsi:N', sort=alt.EncodingSortField(order='ascending')),
+    alt.Y('rata2:Q')
+).properties(width=720,height=480)
 
-
-
+st.altair_chart(top_10_luas_bar)
 
 non_zero_df = df2[df2['rata2'] != 0]
 top_10_sempit = non_zero_df.nsmallest(10, 'rata2')
 top_10_sempit.head(10)
 
+st.header("10 Provinsi dengan luas lahan sawit terkecil dan bukan nol")
+st.write("""
+Provinsi yang memulai proses penanaman kelapa sawit. Belum tentu bergantung pada produktivitas kelapa sawit.
+         """)
+
 # Bar chart disini top 10 tersempit
+top_10_sempit_bar = alt.Chart(top_10_sempit).mark_bar().encode(
+    alt.X('Provinsi:N', sort=alt.EncodingSortField(order='ascending')),
+    alt.Y('rata2:Q')
+).properties(width=720,height=480)
+
+st.altair_chart(top_10_sempit_bar)
+
 
 df.drop(columns=['rata2'], inplace=True)
 df2.drop(columns=['rata2'], inplace=True)
 
-for isi_provinsi in top_10_luas['Provinsi']:
-    df_top_10_luas = df[df['Provinsi'] == isi_provinsi]
-    df2_top_10_luas = df2[df2['Provinsi'] == isi_provinsi]
 
-    normalisasi_df = (df_top_10_luas.iloc[0, 1:] - df_top_10_luas.iloc[0, 1:].min()) / (df_top_10_luas.iloc[0, 1:].max() - df_top_10_luas.iloc[0, 1:].min())
-    normalisasi_df2 = (df2_top_10_luas.iloc[0, 1:] - df2_top_10_luas.iloc[0, 1:].min()) / (df2_top_10_luas.iloc[0, 1:].max() - df2_top_10_luas.iloc[0, 1:].min())
+st.title("Hubungan nilai PDRB dan luas lahan kelapa sawit ")
 
-    # Buat line chart disini
+pilih_provinsi = st.selectbox(
+    "Pilih provinsi yang akan ditampilkan",
+    df['Provinsi']
+)
 
+df_pilih = df[df['Provinsi'] == pilih_provinsi]
+df2_pilih = df2[df2['Provinsi'] == pilih_provinsi]
+
+normalisasi_df = (df_pilih.iloc[0, 1:] - df_pilih.iloc[0, 1:].min()) / (df_pilih.iloc[0, 1:].max() - df_pilih.iloc[0, 1:].min())
+normalisasi_df2 = (df2_pilih.iloc[0, 1:] - df2_pilih.iloc[0, 1:].min()) / (df2_pilih.iloc[0, 1:].max() - df2_pilih.iloc[0, 1:].min())
+
+fig_grafik, ax_grafik = plt.subplots(figsize=(5, 5))
+ax_grafik.plot(df_pilih.columns[1:], normalisasi_df, marker='o', label='PRDB')
+ax_grafik.plot(df2_pilih.columns[1:], normalisasi_df2, marker='o', color='orange', label='Luas Lahan')
+ax_grafik.set_title('Perbandingan PRDB terhadap Luas lahan sawit' + ' Provinsi ' + pilih_provinsi)
+ax_grafik.set_xlabel('Tahun')
+ax_grafik.set_ylabel('Normalisasi')
+ax_grafik.grid(True)
+ax_grafik.legend()
+
+st.pyplot(fig=fig_grafik)
