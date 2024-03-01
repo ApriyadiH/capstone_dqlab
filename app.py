@@ -1,119 +1,70 @@
 import streamlit as st
 import pandas as pd
 import altair as alt
-# from numerize import numerize
 
-st.set_page_config(layout='wide')
+st.title("Hubungan Luas Lahan Kelapa Sawit dan Nilai Produk Domestik Regional Bruto")
+st.write("""
+Minyak nabati yang paling banyak dikonsumsi oleh umat manusia di berbagai belahan dunia merupakan minyak kelapa sawit. Produsen terbesar dari Minyak kelapa sawit merupakan negara tercinta Indonesia. Kelapa sawit merupakan salah satu pendorong perekonomian di Indonesia. Dengan menggunakan nilai Produk Domestik Regional Bruto sebagai indikator perkembangan ekonomi, kita dapat melihat dampak dari perluasan dan pengembangan lahan kelapa sawit terhadap perkembangan ekonomi.
+         """)
 
-# Fungsi tambahan dari kakaknya
-def format_big_number(num):
-    if num >= 1e6:
-        return f"{num / 1e6:.2f} Mio"
-    elif num >= 1e3:
-        return f"{num / 1e3:.2f} K"
-    else:
-        return f"{num:.2f}"
+st.header("10 Provinsi dengan luas lahan sawit terluas")
+st.write("""
+Provinsi dengan lahan sawit terluas akan memiliki keadaan ekonomi yang sangat bergantung pada hasil kelapa sawit.         """)
 
-df = pd.read_csv('https://docs.google.com/spreadsheets/d/e/2PACX-1vQMqC_6fkaH6oZweJDIIYFDdE9o3P3G1hB0OKLzkGGf0pB-FjWJoAMoYca2iXV2ID5dE7hoklCSx6hE/pub?gid=0&single=true&output=csv')
+# Kode dulu
+# link = 'https://drive.google.com/uc?id=1mWjqzp9uo02_0J-_E7rHI1mnqjX3wicv'
+df = pd.read_csv('https://drive.google.com/uc?id=1-KD0URusqdUYO4aBi_gTeg_UFWG7UNUo', delimiter =';')
+df2 = pd.read_csv('https://drive.google.com/uc?id=1dTrK2F7DHQngdzlfLO9XG1qp9sKO-KpU', delimiter=";")
 
-df['order_date'] = pd.to_datetime(df['order_date'])
-df['ship_date'] = pd.to_datetime(df['ship_date'])
+kolom_dihapus = ["2010",
+                 "2011",
+                 "2012",
+                 "2013",
+                 "2022",
+                 "2023"]
 
-df['order_year'] = df['order_date'].dt.year
+for kolom in kolom_dihapus:
+    df.drop(columns=[kolom], inplace=True)
 
-CURR_YEAR = max(df['order_date'].dt.year)
-PREV_YEAR = CURR_YEAR - 1
+df = df.drop(df[df['Provinsi'] == 'Indonesia'].index)
+df2 = df2.drop(df2[df2['Provinsi'] == 'Indonesia'].index)
 
-st.title("Superstore Dashboard")
+kolom = ["2014", "2015", "2016", "2017", "2018", "2019", "2020", "2021"]
 
-# 1 periksa tahun terakhir dari data
-# itung total sales, banyaknya order, banyaknya kosumen, profit %
-# di tahun tersebut
+df2.replace(' -   ', '', inplace=True)
+for isi_kolom in kolom:
+  df2[isi_kolom] = pd.to_numeric(df2[isi_kolom])
 
-data = pd.pivot_table(
-    data=df,
-    index='order_year',
-    aggfunc={
-        'sales':'sum',
-        'profit':'sum',
-        'order_id':pd.Series.nunique,
-        'customer_id':pd.Series.nunique
-    }
-).reset_index()
+df2['rata2'] = df2[kolom].mean(axis=1)
+top_10_luas= df2.nlargest(10, 'rata2')
 
-data['profit_pct'] = 100.0 * data['profit'] / data['sales']
+df['rata2'] = df[kolom].mean(axis=1)
+top_10_pdrb = df.nlargest(10, 'rata2')
 
-mx_sales, mx_order, mx_customer, mx_profit_pct = st.columns(4)
-st.dataframe(data)
+# Bar Chart disini top 10 terluas
+st.bar_chart(
+    x = top_10_luas['Provinsi'][1],
+    y = top_10_luas['rata2'])
 
-with mx_sales:
-    curr_sales = data.loc[data['order_year']==CURR_YEAR, 'sales'].values[0]
-    prev_sales = data.loc[data['order_year']==PREV_YEAR, 'sales'].values[0]
-    
-    sales_diff_pct = 100.0 * (curr_sales - prev_sales) / prev_sales
 
-    st.metric("Sales", value=format_big_number(curr_sales), delta=f'{sales_diff_pct:.2f}%')
 
-with mx_order:
-    curr_order = data.loc[data['order_year']==CURR_YEAR, 'order_id'].values[0]
-    prev_order = data.loc[data['order_year']==PREV_YEAR, 'order_id'].values[0]
 
-    order_diff_pct = 100.0 * (curr_order - prev_order) / prev_order
 
-    st.metric("Number of Order", value=format_big_number(curr_order), delta=f'{order_diff_pct:.2f}%')
+non_zero_df = df2[df2['rata2'] != 0]
+top_10_sempit = non_zero_df.nsmallest(10, 'rata2')
+top_10_sempit.head(10)
 
-with mx_customer:
-    curr_customer = data.loc[data['order_year']==CURR_YEAR, 'customer_id'].values[0]
-    prev_customer = data.loc[data['order_year']==PREV_YEAR, 'customer_id'].values[0]
+# Bar chart disini top 10 tersempit
 
-    customer_diff_pct = 100.0 * (curr_customer - prev_customer) / prev_customer
+df.drop(columns=['rata2'], inplace=True)
+df2.drop(columns=['rata2'], inplace=True)
 
-    st.metric("Number of customer", value=curr_customer, delta=f'{customer_diff_pct:.2f}%')
+for isi_provinsi in top_10_luas['Provinsi']:
+    df_top_10_luas = df[df['Provinsi'] == isi_provinsi]
+    df2_top_10_luas = df2[df2['Provinsi'] == isi_provinsi]
 
-with mx_profit_pct:
-    curr_profit_pct = data.loc[data['order_year']==CURR_YEAR, 'profit_pct'].values[0]
-    prev_profit_pct = data.loc[data['order_year']==PREV_YEAR, 'profit_pct'].values[0]
+    normalisasi_df = (df_top_10_luas.iloc[0, 1:] - df_top_10_luas.iloc[0, 1:].min()) / (df_top_10_luas.iloc[0, 1:].max() - df_top_10_luas.iloc[0, 1:].min())
+    normalisasi_df2 = (df2_top_10_luas.iloc[0, 1:] - df2_top_10_luas.iloc[0, 1:].min()) / (df2_top_10_luas.iloc[0, 1:].max() - df2_top_10_luas.iloc[0, 1:].min())
 
-    diff_pct = 100.0 * (curr_profit_pct - prev_profit_pct) / prev_profit_pct
+    # Buat line chart disini
 
-    st.metric("Profit Percentage", value=f'{curr_profit_pct:.2f}%', delta=f'{diff_pct:.2f}%')
-
-freq = st.selectbox("Freq", ['Harian','Bulanan','Tahunan'])
-
-timeUnit = {
-    'Harian':'yearmonthdate',
-    'Bulanan':'yearmonth',
-    'Tahunan':'year'
-}
-
-st.header("Sales trend")
-# altair membuat object berupa chart dengan data di dalam parameter
-sales_line = alt.Chart(df[df['order_year']==CURR_YEAR]).mark_line().encode(
-    # alt.X('order_date', title='Order Date', timeUnit=timeUnit[freq]),
-    alt.X('order_date', title='Order Date', timeUnit=timeUnit[freq]),
-    alt.Y('sales', title='Revenue', aggregate='sum')
-)
-
-st.altair_chart(sales_line,use_container_width=True)
-
-sales_bar = alt.Chart(df[df['order_year']==CURR_YEAR]).mark_bar().encode(
-    column='category:N',
-    y='sum(sales):Q',
-    color='segment:N',
-    x='segment:N'
-).properties(width=280,height=220)
-
-st.altair_chart(sales_bar)
-
-# Scatter plot Profit vs Sales
-
-st.header("Sales vs Profit Correlation")
-_, midcol, _ = st.columns([1,3,1])
-
-with midcol:
-    scatter = alt.Chart(df[(df['order_year']==CURR_YEAR)&(df['sales']<6000)]).mark_point().encode(
-        x='sales:Q',
-        y='profit:Q',
-        color='region:N'
-    )
-    st.altair_chart(scatter, use_container_width=True)
