@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 import altair as alt
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 
 # Judul
 st.title('Hubungan Kelapa Sawit dan Nilai Produk Domestik Regional Bruto')
